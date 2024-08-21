@@ -1,16 +1,42 @@
+from typing_extensions import Optional, NotRequired
 import pygame
-from core.bus import EventBus
-from core.entity import Entity
-from core.event import A_DOWN, A_LEFT, A_RIGHT, A_UP, E_ACTION, GameActionEvent, GameEvent
+from core.entity import PhysicsEntity, PhysicsEntityProps
+from core.events import (
+    A_DOWN,
+    A_LEFT,
+    A_RIGHT,
+    A_UP,
+    E_INPUT,
+    GameActionEvent,
+    GameEvent,
+)
+from core.game import Game
 
-class Player(Entity):
-    def __init__(self):
-        Entity.__init__(self, [100,200])
-        self.move_x = [0, 0]
-        self.move_y = [0, 0]
+
+class PlayerProps(PhysicsEntityProps):
+    speed: NotRequired[float]
+    accel: NotRequired[float]
+    decel: NotRequired[float]
+    max_fall_speed: NotRequired[float]
+
+
+class Player(PhysicsEntity):
+    def __init__(self, game: Game, props: Optional[PlayerProps] = None):
+        super().__init__()
+        self.game = game
+        self.move_x: list[float] = [0, 0]
+        self.move_y: list[float] = [0, 0]
         self.speed = 30
-        self.gravity = 50
-        EventBus.on(E_ACTION, self.id, self.on_message)
+        self.accel = 900
+        self.decel = 900
+        self.gravity = 10
+        self.max_fall_speed = 50
+        self.grounded = False
+
+        self.game.router.on(E_INPUT, self.id, self.handle_event)
+        self.game.add_entity(self)
+
+        self.set_props(props)
 
     @property
     def dx(self):
@@ -18,11 +44,16 @@ class Player(Entity):
 
     @property
     def dy(self):
-       return self.move_y[0] + self.move_y[1]
+        return self.move_y[0] + self.move_y[1]
 
     def update(self, dt: float):
-        self.position[0] += self.dx * self.speed * dt
-        self.position[1] += self.dy * self.speed * dt
+        self.x += self.dx * self.speed * dt
+
+    def apply_gravity(self, dt: float):
+        if self.grounded:
+            return
+
+        self.move_y[1] = min(self.move_y[1] + self.gravity * dt, self.max_fall_speed)
 
     def handle_action(self, event: GameActionEvent):
         if event.action == A_LEFT:
@@ -35,9 +66,8 @@ class Player(Entity):
             self.move_y[1] = 1 if event.pressed else 0
 
     def draw(self, surface):
-        pygame.draw.circle(surface, (255,0,0), self.position, 25)
+        pygame.draw.circle(surface, (255, 0, 0), self.position, 25)
 
-    def on_message(self, event: GameEvent):
+    def handle_event(self, event: GameEvent):
         if isinstance(event, GameActionEvent):
             self.handle_action(event)
-

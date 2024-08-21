@@ -1,20 +1,55 @@
 import pygame
 import sys
 
-from core.bus import EventBus
 from core.entity import Entity
-from core.event import GameActionEvent
+from core.event_router import GameEventRouter
+from core.events import (
+    A_ACTIVATE,
+    A_DOWN,
+    A_JUMP,
+    A_LEFT,
+    A_NONE,
+    A_RIGHT,
+    A_UP,
+    E_RENDER,
+    GameActionEvent,
+)
 
-class Game():
-    __FPS = 60
-    __REFRESH = pygame.USEREVENT
+FPS = 60
+V_WIDTH = 800
+V_HEIGHT = 600
+PYGAME_KEY_ACTION_MAP = {
+    # left
+    pygame.K_a: A_LEFT,
+    pygame.K_LEFT: A_LEFT,
+    # right
+    pygame.K_d: A_RIGHT,
+    pygame.K_RIGHT: A_RIGHT,
+    # up
+    pygame.K_w: A_UP,
+    pygame.K_UP: A_UP,
+    # down
+    pygame.K_s: A_DOWN,
+    pygame.K_DOWN: A_DOWN,
+    # jump
+    pygame.K_SPACE: A_JUMP,
+    # activate
+    pygame.K_e: A_ACTIVATE,
+}
 
+
+def pygame_key_to_game_action(key: int) -> int:
+    return PYGAME_KEY_ACTION_MAP.get(key, A_NONE)
+
+
+class Game:
     def __init__(self):
         pygame.init()
         pygame.display.set_caption("test")
-        pygame.time.set_timer(Game.__REFRESH, int(1000.0/Game.__FPS))
+        pygame.time.set_timer(E_RENDER, int(1000.0 / FPS))
 
-        self.screen = pygame.display.set_mode((800,600))
+        self.screen = pygame.display.set_mode((V_WIDTH, V_HEIGHT))
+        self.router = GameEventRouter()
         self.clock = pygame.time.Clock()
         self.running = True
         self.dt = 0
@@ -28,10 +63,10 @@ class Game():
     def update(self):
         for e in self.entities.values():
             e.update(self.dt)
-        self.dt = self.clock.tick(Game.__FPS) / 1000.0
+        self.dt = self.clock.tick(FPS) / 1000.0
 
     def draw(self):
-        self.screen.fill((0,0,0))
+        self.screen.fill((0, 0, 0))
         for e in self.entities.values():
             e.draw(self.screen)
         pygame.display.flip()
@@ -45,18 +80,22 @@ class Game():
                     if event.key == pygame.K_ESCAPE:
                         self.running = False
                     else:
-                        EventBus.broadcast(
-                            GameActionEvent.from_pygame_key_event(key=event.key, pressed=True)
+                        self.router.broadcast(
+                            GameActionEvent(
+                                action=pygame_key_to_game_action(event.key),
+                                pressed=True,
+                            )
                         )
                 if event.type == pygame.KEYUP:
-                    EventBus.broadcast(
-                        GameActionEvent.from_pygame_key_event(key=event.key, pressed=False)
+                    self.router.broadcast(
+                        GameActionEvent(
+                            action=pygame_key_to_game_action(event.key), pressed=False
+                        )
                     )
-                if event.type == Game.__REFRESH:
+                if event.type == E_RENDER:
                     self.draw()
             self.update()
-
+            pygame.display.flip()
 
         pygame.quit()
         sys.exit()
-
