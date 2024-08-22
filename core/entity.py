@@ -54,15 +54,23 @@ class Entity:
 
 class PhysicsEntityProps(EntityProps):
     gravity: NotRequired[float]
+    static: NotRequired[bool]
+    hitbox: NotRequired[list[int | float]]
 
 
 class PhysicsEntity(Entity):
     def __init__(self, props: Optional[PhysicsEntityProps] = None):
         super().__init__()
+        self.gravity: float = 0
+        self.static: bool = False
         self.velocity: list[float] = [0, 0]
-        self.hitbox: list[float] = [0, 0, 0, 0]
+        self.hitbox: list[float] = [200, 0, 400, 30]
+        self._collider: Optional[pygame.Rect] = None
 
         self.set_props(props)
+
+        if self.static:
+            self._collider = self.collider
 
     @property
     def vx(self):
@@ -74,8 +82,31 @@ class PhysicsEntity(Entity):
 
     @property
     def vy(self):
-        return self.velocity[0]
+        return self.velocity[1]
 
     @vy.setter
     def vy(self, v: float):
         self.velocity[1] = v
+
+    @property
+    def collider(self) -> pygame.Rect:
+        if self.static and self._collider is not None:
+            return self._collider
+
+        return pygame.Rect(
+            self.x + self.hitbox[0] - self.hitbox[2] * 0.5,
+            self.y + self.hitbox[1] - self.hitbox[3] * 0.5,
+            self.hitbox[2],
+            self.hitbox[3],
+        )
+
+    def next_collider(self, next_x: int | float, next_y: int | float) -> pygame.Rect:
+        return pygame.Rect(
+            next_x + self.hitbox[0] - self.hitbox[2] * 0.5,
+            next_y + self.hitbox[1] - self.hitbox[3] * 0.5,
+            self.hitbox[2],
+            self.hitbox[3],
+        )
+
+    def draw(self, surface: pygame.surface.Surface):
+        pygame.draw.rect(surface, (255, 255, 0), self.collider, 1)

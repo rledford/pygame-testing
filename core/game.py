@@ -1,7 +1,7 @@
 import pygame
 import sys
 
-from core.entity import Entity
+from core.entity import Entity, PhysicsEntity
 from core.event_router import GameEventRouter
 from core.events import (
     A_ACTIVATE,
@@ -15,7 +15,7 @@ from core.events import (
     GameActionEvent,
 )
 
-FPS = 60
+FPS = 120
 V_WIDTH = 800
 V_HEIGHT = 600
 PYGAME_KEY_ACTION_MAP = {
@@ -55,7 +55,12 @@ class Game:
         self.dt = 0
 
         self.entities: dict[int, Entity] = {}
-        self.tilemap: dict[str, dict] = {}
+        self.map: dict[str, dict] = {}
+        self.platforms: list[PhysicsEntity] = [
+            PhysicsEntity({"position": [100, 500], "static": True}),
+            PhysicsEntity({"position": [0, 400], "static": True}),
+            PhysicsEntity({"position": [-100, 300], "static": True}),
+        ]
 
     def add_entity(self, entity: Entity):
         self.entities[entity.id] = entity
@@ -63,16 +68,18 @@ class Game:
     def update(self):
         for e in self.entities.values():
             e.update(self.dt)
-        self.dt = self.clock.tick(FPS) / 1000.0
 
     def draw(self):
         self.screen.fill((0, 0, 0))
         for e in self.entities.values():
             e.draw(self.screen)
+        for p in self.platforms:
+            p.draw(self.screen)
         pygame.display.flip()
 
     def run(self):
         while self.running:
+            self.dt = self.clock.tick(FPS) / 1000.0
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
