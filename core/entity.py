@@ -55,7 +55,7 @@ class Entity:
 class PhysicsEntityProps(EntityProps):
     gravity: NotRequired[float]
     static: NotRequired[bool]
-    hitbox: NotRequired[list[int | float]]
+    bounds: NotRequired[list[int | float]]
 
 
 class PhysicsEntity(Entity):
@@ -64,13 +64,16 @@ class PhysicsEntity(Entity):
         self.gravity: float = 0
         self.static: bool = False
         self.velocity: list[float] = [0, 0]
-        self.hitbox: list[float] = [200, 0, 400, 30]
+        self.bounds: list[float] = [0, 0, 0, 0]
         self._collider: Optional[pygame.Rect] = None
 
         self.set_props(props)
 
         if self.static:
-            self._collider = self.collider
+            self._collider = self.get_collider()
+
+    def __str__(self):
+        return f"x: {self.x}, y: {self.y}, bounds: {self.bounds}, collider: {self._collider}"
 
     @property
     def vx(self):
@@ -88,25 +91,22 @@ class PhysicsEntity(Entity):
     def vy(self, v: float):
         self.velocity[1] = v
 
-    @property
-    def collider(self) -> pygame.Rect:
-        if self.static and self._collider is not None:
+    def get_collider(
+        self, x: Optional[float] = None, y: Optional[float] = None
+    ) -> pygame.Rect:
+        if self.static and self._collider:
             return self._collider
 
-        return pygame.Rect(
-            self.x + self.hitbox[0] - self.hitbox[2] * 0.5,
-            self.y + self.hitbox[1] - self.hitbox[3] * 0.5,
-            self.hitbox[2],
-            self.hitbox[3],
-        )
+        x = x if x is not None else self.x
+        y = y if y is not None else self.y
 
-    def next_collider(self, next_x: int | float, next_y: int | float) -> pygame.Rect:
         return pygame.Rect(
-            next_x + self.hitbox[0] - self.hitbox[2] * 0.5,
-            next_y + self.hitbox[1] - self.hitbox[3] * 0.5,
-            self.hitbox[2],
-            self.hitbox[3],
+            x + self.bounds[0] - self.bounds[2] * 0.5,
+            y + self.bounds[1] - self.bounds[3] * 0.5,
+            self.bounds[2],
+            self.bounds[3],
         )
 
     def draw(self, surface: pygame.surface.Surface):
-        pygame.draw.rect(surface, (255, 255, 0), self.collider, 1)
+        color = (255,255,0) if self.static else (255,0,255)
+        pygame.draw.rect(surface, color, self.get_collider(), 1)

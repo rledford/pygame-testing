@@ -56,11 +56,7 @@ class Game:
 
         self.entities: dict[int, Entity] = {}
         self.map: dict[str, dict] = {}
-        self.platforms: list[PhysicsEntity] = [
-            PhysicsEntity({"position": [100, 500], "static": True}),
-            PhysicsEntity({"position": [0, 400], "static": True}),
-            PhysicsEntity({"position": [-100, 300], "static": True}),
-        ]
+        self.platforms: list[PhysicsEntity] = []
 
     def add_entity(self, entity: Entity):
         self.entities[entity.id] = entity
